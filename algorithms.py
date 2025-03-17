@@ -125,12 +125,15 @@ def classify_silence(y,sr,frame_size,vol_t):
     
     st.plotly_chart(fig, key='1234')
 
+def f0_autocorrelation(y,sr,frame_size, plot=True):
+    pass
+
 
 if __name__ == '__main__':
     audio = 'sample_data/zdanie_1.wav'
     y,sr = librosa.load(audio, sr=None)
 
-    classify_silence(y,sr,1024, 0.05,0.05)
+    f0_autocorrelation(y,sr,1024, plot=False)
     
     
     

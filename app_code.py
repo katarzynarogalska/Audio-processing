@@ -1,5 +1,6 @@
 import streamlit as st
 from algorithms import *
+import librosa
 st.set_page_config(layout="wide")
 
 
@@ -55,4 +56,7 @@ if frame_check:
                 #zcr_slider = st.slider('Choose ZCR threshold', min_value=float(min_zcr), max_value=float(max_zcr), value = float(mid_zcr))
                 #ste_slider = st.slider('Choose STE threshold', min_value=float(min_ste), max_value=float(max_ste), value=float(mid_ste), step=1e-6)
                 classify_silence(y,sr,frame_size=1024, vol_t=vol_slider)
+            with st.container():
+                st.subheader('Fundamental Frequency')
+                #f0_autocorrelation(y,sr,1024)
        
