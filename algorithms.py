@@ -61,6 +61,7 @@ def short_time_energy(y,sr,frame_size,plot=True):
     if plot:
         interactive_plot(x=frame_numbers, y=frame_energy, title='Short time energy', x_axis='Frame number', y_axis='Short time energy (STE)', text=[f'Frame: {f}, STE: {v:.2f}' for f,v in zip(frame_numbers, frame_energy)])
     return frame_energy
+
 def zero_crossing_rate(y, sr, frame_size, plot=True):
     frames = split_into_frames(y,sr,frame_size)
     def signum(x):
@@ -85,8 +86,6 @@ def zero_crossing_rate(y, sr, frame_size, plot=True):
 def classify_silence(y,sr,frame_size,vol_t):
    
     volume = loudness(y,sr,frame_size, plot=False)
-    zcr= zero_crossing_rate(y,sr,frame_size, plot=False)
-
 
     #klasyfikacja ramki jako cisza lub nie
     silence_frames = []
@@ -106,7 +105,6 @@ def classify_silence(y,sr,frame_size,vol_t):
     silent_times = times[silence_mask]
     silent_amplitudes = y[silence_mask]
     
-    
     fig = go.Figure()
     fig.add_trace(go.Scatter(x=loud_times, y=loud_amplitudes, mode='markers',
                              marker = dict(size=1.2, color='blue'),
@@ -125,8 +123,39 @@ def classify_silence(y,sr,frame_size,vol_t):
     
     st.plotly_chart(fig, key='1234')
 
+
 def f0_autocorrelation(y,sr,frame_size, plot=True):
-    pass
+    def autocorrelation(frame):
+        n=len(frame)
+        result=[0]*n
+        for k in range(n):
+            for i in range(n-k):
+                result[k] += frame[i]*frame[k+i]
+        return result
+    frames = split_into_frames(y,sr,frame_size)
+
+    f0_values=[]
+    for frame in frames:
+        autocorr = autocorrelation(frame)
+
+        #first maximum
+        min_opoznienie = 0.1*frame_size
+        max_lok = None
+        for j in range(min_opoznienie, frame_size - 1):
+            if autocorr[j] > autocorr[j - 1] and autocorr[j] > autocorr[j + 1]:
+                max_lok = j
+                break
+
+        if max_lok is not None:
+            f0 = sr / max_lok
+            f0_values.append(f0)
+    frame_numbers = np.arange(len(f0_values))
+    if plot:
+        interactive_plot(x=frame_numbers, y=f0_values, title='Fundamental Frequency', x_axis='Frame number', y_axis='F0', text=['None'])
+    
+
+
+
 
 
 if __name__ == '__main__':
