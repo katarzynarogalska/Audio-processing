@@ -58,5 +58,5 @@ if frame_check:
                 classify_silence(y,sr,frame_size=1024, vol_t=vol_slider)
             with st.container():
                 st.subheader('Fundamental Frequency')
-                #f0_autocorrelation(y,sr,1024)
+                f0_autocorrelation(y,sr,1024)
        
