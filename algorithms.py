@@ -4,6 +4,7 @@ import streamlit as st
 import numpy as np
 import matplotlib.pyplot as plt
 import plotly.graph_objects as go
+from scipy.signal import find_peaks
 import os
 
 
@@ -42,7 +43,7 @@ def plot_audio(y,sr):
         fig.write_html(file_path)
         st.success(f"Plot saved as Audio_timeline.html")
     
-def split_into_frames(y, sr, frame_length_sec=0.2):
+def split_into_frames(y, sr, frame_length_sec=0.1):
     frame_length = int(frame_length_sec * sr)  
     num_frames = len(y) // frame_length  # liczba pełnych ramek
     frames = [y[i * frame_length: (i + 1) * frame_length] for i in range(num_frames)]
@@ -53,7 +54,7 @@ def split_into_frames(y, sr, frame_length_sec=0.2):
     return frames
 
 
-def loudness(y,sr,frame_length=0.2, plot=True):
+def loudness(y,sr,frame_length=0.1, plot=True):
     frames = split_into_frames(y,sr, frame_length)
     frame_size = int(frame_length * sr)
 
@@ -69,7 +70,7 @@ def loudness(y,sr,frame_length=0.2, plot=True):
      interactive_plot(x=frame_numbers, y= frame_loudness, title='Volume per frame', x_axis='Frame number', y_axis='Volume (RMS)', text = [f'Frame: {f}, Volume: {v:.2f}' for f,v in zip(frame_numbers, frame_loudness)], key='volume_button')
     return frame_loudness
 
-def short_time_energy(y,sr,frame_length=0.2,plot=True):
+def short_time_energy(y,sr,frame_length=0.1,plot=True):
     frames = split_into_frames(y,sr, frame_length)
     frame_size = int(frame_length * sr)
     frame_energy =[]
@@ -83,7 +84,7 @@ def short_time_energy(y,sr,frame_length=0.2,plot=True):
     return frame_energy
 
 
-def zero_crossing_rate(y, sr, frame_length=0.2, plot=True):
+def zero_crossing_rate(y, sr, frame_length=0.1, plot=True):
     frames = split_into_frames(y,sr,frame_length)
     frame_size= int(frame_length * sr)
 
@@ -106,7 +107,7 @@ def zero_crossing_rate(y, sr, frame_length=0.2, plot=True):
     return  zcr_values
 
 
-def classify_silence(y,sr,vol_t, zcr_t, frame_length=0.2,):
+def classify_silence(y,sr,vol_t, zcr_t, frame_length=0.1):
    
     volume = loudness(y,sr,frame_length, plot=False)
     zcr = zero_crossing_rate(y,sr,frame_length=frame_length, plot=False)
@@ -153,35 +154,49 @@ def classify_silence(y,sr,vol_t, zcr_t, frame_length=0.2,):
         st.success(f"Plot saved as silence.html")
 
 
-def estimate_fundamental_frequency(audio_frame, sample_rate, min_frequency=50, max_frequency=200):
-
-  autocorr = np.correlate(audio_frame, audio_frame, mode='full')
-  autocorr = autocorr[len(audio_frame) - 1:]  # Keep only the positive lags
-  min_period = int(sample_rate / max_frequency)
-  max_period = int(sample_rate / min_frequency)
-
-  peaks = []
-  for i in range(min_period, max_period):
-    if autocorr[i] > autocorr[i - 1] and autocorr[i] > autocorr[i + 1]:
-      peaks.append((i, autocorr[i]))
-
-  if not peaks:
-    return 0  
-  best_peak = max(peaks, key=lambda x: x[1])
-  best_lag = best_peak[0]
-  fundamental_frequency = sample_rate / best_lag
-  return fundamental_frequency
-
-
-def f0(y,sr,frame_length=0.2):
+def estimate_f0_auto(y, sr,frame_length=0.1, min_frequency=50, max_frequency=200):
     frames = split_into_frames(y,sr,frame_length)
-    freq =[]
-    for f in frames:
-        f0 = estimate_fundamental_frequency(f,sr)
-        freq.append(f0)
+    f0_values =[]
+    min_period = int(sr / max_frequency)
+    max_period = int(sr / min_frequency)
+    for frame in frames:
+        N=len(frame)
+        autocorr=np.zeros(max_period)
+        for lag in range(min_period, max_period):
+            if lag >= N:  # Sprawdź, czy lag jest większe niż rozmiar ramki
+                continue
+            autocorr[lag] = np.sum(frame[:N-lag] * frame[lag:N])
+        autocorr = autocorr[min_period:max_period] #dodatnie opoznienia
+        peak_indices, _ = find_peaks(autocorr)
+        if len(peak_indices) == 0:
+            return 0  # Jeśli nie znaleziono maksimum, zwracamy 0 Hz
+        best_lag = peak_indices[0] + min_period
+        f0 = sr / best_lag
+        f0_values.append(f0)
     frame_numbers=np.arange(len(frames))
-    interactive_plot(x = frame_numbers, y=freq, title='Fundamental Frequency Autocorrelation', x_axis='Frame number', y_axis='F0', text=[f'Frame: {f}, F0: {v:.2f}' for f,v in zip(frame_numbers, freq)] , key='f0_autocorr_button')
-    return freq
+    interactive_plot(x = frame_numbers, y=f0_values, title='Fundamental Frequency Autocorrelation', x_axis='Frame number', y_axis='F0', text=[f'Frame: {f}, F0: {v:.2f}' for f,v in zip(frame_numbers, f0_values)] , key='f0_corr_button')
+    return f0_values
+
+
+def estimate_f0_amdf(y,sr,frame_length=0.1,min_frequency=50, max_frequency=200):
+    frames = split_into_frames(y,sr,frame_length)
+    f0_vals =[]
+    min_lag = int(sr/max_frequency)
+    max_lag = int(sr/min_frequency)
+    for frame in frames:
+        N=len(frame)
+        amdf = np.zeros(max_lag)
+        for l in range(min_lag, max_lag):
+            if l >= N:  # Sprawdź, czy lag jest większe niż rozmiar ramki
+                continue
+            amdf[l] = np.sum(np.abs(frame[:N-l] - frame[l:N]))
+        #find min after adding real lag
+        best_lag = np.argmin(amdf[min_lag:max_lag]) + min_lag
+        f0 = sr / best_lag if best_lag > 0 else 0  # Convert lag to frequency
+        f0_vals.append(f0)
+    frame_numbers = np.arange(len(frames))
+    interactive_plot(x = frame_numbers, y=f0_vals, title='Fundamental Frequency AMDF', x_axis='Frame number', y_axis='F0', text=[f'Frame: {f}, F0: {v:.2f}' for f,v in zip(frame_numbers, f0_vals)] , key='f0_amdf_button')
+    return f0_vals
 
 
 

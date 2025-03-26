@@ -26,9 +26,9 @@ def volume_undulation(y,sr,frame_length=1):
     volumes = np.array(loudness(y,sr,frame_length, plot=False))
     peaks, _ = find_peaks(volumes)
     valleys, _ = find_peaks(-volumes)
-    extrema = np.sort(np.concatenate([peaks, valleys]))
+    extrema = np.sort(np.concatenate([peaks, valleys])) #sortowanie po indeksach
     diffs = np.diff(volumes[extrema]) #różnice między sasiednimi ekstremami
-    vu = np.sum(np.abs(diffs))  # Suma różnic bez uwzględniania znaku (rozpiętość amplitud)
+    vu = np.sum(np.abs(diffs))  # Suma różnic
     return vu
 
 
@@ -69,6 +69,10 @@ def energy_entropy(y,sr,frame_length=1):
     return entropy
 
 # ZCR Based ---------------------------------------------------------------------------------------------------------
+def zstd(y,sr,frame_length=1):
+    zcrs = zero_crossing_rate(y,sr,frame_length, plot=False)
+    return np.std(zcrs)
+
 def hzcrr(y,sr,frame_length=1):
     zcrs = zero_crossing_rate(y,sr,frame_length, plot=False)
     avgzcr = np.average(zcrs)
@@ -81,13 +85,13 @@ def hzcrr(y,sr,frame_length=1):
 # music speech detection ------------------------------------------------------------------------------------------------
 def speech_music(y,sr):
     l = lster(y,sr)
-    print(l)
-    if l>0.2 and l<0.5:
-        return 'Speech'
+   
+    if l>0.2:
+        return (f'Speech', f'LSER = {l:.3f}')
     elif l<0.14:
-        return 'Music'
+        return (f'Music', f'LSER = {l:.3f}')
     else:
-        return 'Speech or Music'
+        return (f'Uncetrain', f'LSER = {l:.3f}')
     
 
 # Extras --------------------------------------------------------------------------------------------------------------
@@ -99,7 +103,6 @@ def spectral_centroid(y,sr,frame_length):
     times = librosa.frames_to_time(range(len(sc)), sr=sr)
     # interactive_plot(x=times, y=sc,title='Spectral Centroid plot', x_axis='Time [s]', y_axis='Spectral Centroid', text='', key='spectral_centroid')
     # return sc
-
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(times, sc, label="Spectral Centroid", color='#0d0469', linewidth=2)
     ax.fill_between(times, sc - band, sc + band, 
@@ -109,21 +112,21 @@ def spectral_centroid(y,sr,frame_length):
     ax.set_ylabel("Frequency (Hz)")
     ax.set_title("Spectral Centroid & Bandwidth Over Time")
     ax.legend()
-
-    # Display the plot in Streamlit
     st.pyplot(fig)
+
 
 #only for clips classified as music
 def beats(y,sr):
-    tempo= librosa.feature.tempo(y=y, sr=sr)
+    tempo= librosa.feature.tempo(y=y, sr=sr)[0]
+    tempo = np.round(tempo,2)
     if tempo<86:
-        return f"Low BPM value : {tempo} - slow music"
+        return ('Slow music', f'{tempo}BPM')
     elif tempo<100:
-        return f"Medium BPM value : {tempo} - moderate pace music"
+        return ('Medium pace music', f'{tempo}BPM')
     elif tempo<140:
-        return f"High BPM value : {tempo} - fast music"
+        return ('Fast music', f'{tempo}BPM')
     else:
-        return f"Very high BPM value : {tempo} - very fast music"
+        return ('Very fast music', f'{tempo}BPM')
 
 
 if __name__ == '__main__':

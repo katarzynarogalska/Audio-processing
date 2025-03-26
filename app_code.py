@@ -2,11 +2,9 @@ import streamlit as st
 from algorithms import *
 from clip_algorithms import *
 import librosa
-from fpdf import FPDF
 import pandas as pd
-import plotly.io as pio
 import plotly.graph_objs as go
-import io
+
 st.set_page_config(layout="wide")
 
 
@@ -15,14 +13,25 @@ st.title('Audio analysis app')
 with st.sidebar:
         st.subheader('File upload')
         uploaded_file = st.file_uploader("Choose audio file to upload", type=["wav"])
+        
         if uploaded_file is not None:
             y,sr = librosa.load(uploaded_file, sr=None)
-            st.markdown('Uploaded file classified as:')
-            st.write(speech_music(y,sr))
-            classif = speech_music(y,sr)
-            if classif=='Music':
-                bpm = beats(y,sr)
-                st.write(bpm)
+            normalize = st.checkbox('Normalize signal')
+            if normalize:
+                y = y/np.max(np.abs(y))
+            with st.container(border=True):
+                st.markdown('Uploaded file classified as:')
+            
+                classif,l = speech_music(y,sr)
+                st.markdown(f'<span style="color: #b11f47; font-weight: bold;font-size: 15px;">{classif}</span>', unsafe_allow_html=True)
+                st.write(l)
+            with st.container(border=True):
+                if classif=='Music':
+                    cl,bp = beats(y,sr)
+                    st.markdown(f'<span style="color: #b11f47; font-weight: bold;font-size: 15px;">{cl}</span>', unsafe_allow_html=True
+                                )
+                    st.write(bp)
+
             st.subheader("Analysis Options")
             frame_check = st.checkbox('Show frame-level analysis')
             clip_check = st.checkbox('Show clip-level analysis')
@@ -44,7 +53,7 @@ with st.container(border=True):
         st.header('Audio timeline') 
        
         duration = librosa.get_duration(y=y, sr=sr)
-        frame_length =0.01*duration
+        frame_length =0.1
         plot_audio(y,sr)
 
 
@@ -80,8 +89,10 @@ if uploaded_file is not None:
                     #ste_slider = st.slider('Choose STE threshold', min_value=float(min_ste), max_value=float(max_ste), value=float(mid_ste), step=1e-6)
                     classify_silence(y,sr,frame_length=frame_length, vol_t=vol_slider, zcr_t=zcr_slider)
                 with st.container():
-                    st.subheader('Fundamental Frequency')
-                    f0(y,sr)
+                    st.subheader('Fundamental Frequency - Autocorrelation')
+                    estimate_f0_auto(y,sr)
+                    st.subheader('Fundamental Frequency - AMDF')
+                    estimate_f0_amdf(y,sr)
 
     # clip based analysis
     if clip_check:
@@ -120,9 +131,10 @@ if uploaded_file is not None:
         st.write('Zero Crossing Rate related metrics')
         with st.container():
             hzcr = hzcrr(y,sr)
+            zs = zstd(y,sr)
             df =pd.DataFrame({
-                "Metric" : ['HZCRR'],
-                "Value":[hzcr]
+                "Metric" : ['ZSTD','HZCRR'],
+                "Value":[zs, hzcr]
             })
             df = df.reset_index(drop=True)
             st.table(df)
