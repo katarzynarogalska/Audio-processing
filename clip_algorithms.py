@@ -87,11 +87,11 @@ def speech_music(y,sr):
     l = lster(y,sr)
    
     if l>0.2:
-        return (f'Speech', f'LSER = {l:.3f}')
+        return (f'Speech', f'LSTER = {l:.3f}')
     elif l<0.14:
-        return (f'Music', f'LSER = {l:.3f}')
+        return (f'Music', f'LSTER = {l:.3f}')
     else:
-        return (f'Uncetrain', f'LSER = {l:.3f}')
+        return (f'Uncetrain', f'LSTER = {l:.3f}')
     
 
 # Extras --------------------------------------------------------------------------------------------------------------

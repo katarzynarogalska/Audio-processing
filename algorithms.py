@@ -20,7 +20,7 @@ def interactive_plot(x, y, title, x_axis, y_axis, text, key, width=1):
     )
     st.plotly_chart(fig, key=key)
     
-    # Add a save button for the plot
+    # save button for the plot
     if st.button(f'Save {title}', key=f'save_{key}'):
         file_path = os.path.join('report', f"{title.replace(' ', '_')}.html")
         fig.write_html(file_path)
@@ -163,7 +163,7 @@ def estimate_f0_auto(y, sr,frame_length=0.1, min_frequency=50, max_frequency=200
         N=len(frame)
         autocorr=np.zeros(max_period)
         for lag in range(min_period, max_period):
-            if lag >= N:  # Sprawdź, czy lag jest większe niż rozmiar ramki
+            if lag >= N:  # czy lag jest większe niż rozmiar ramki
                 continue
             autocorr[lag] = np.sum(frame[:N-lag] * frame[lag:N])
         autocorr = autocorr[min_period:max_period] #dodatnie opoznienia
