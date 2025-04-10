@@ -148,28 +148,50 @@ if uploaded_file is not None:
         spectral_centroid(y,sr,frame_length)
 # -------------------------------------------------------Projekt 2 --------------------------------------------------
 if uploaded_file is not None:
+    y = y/np.max(np.abs(y))
     if fourier_check:
-        st.subheader('Frequency analysis')
-        with st.container(border=True):
+        st.header('Frequency analysis')
+       
+        granularity = st.radio(label='Chose analysis level', options=['Whole clip', 'Single Frame'])
+        if granularity == 'Single Frame':
+            
             with st.container(border=True):
                 frame_sizes = [128, 256, 512, 1024, 2048]
-
                 frame_size = st.select_slider('Choose frame size:',options=frame_sizes,value=1024)
                 frames = split_to_size_frames(y, frame_size)
                 frame_number = st.number_input(label='Choose frame to analyse', min_value=0, max_value=(len(frames)-1), step=1) 
                 frame = frames[frame_number]
-        
-            st.write(f'Frequency analysis for frame {frame_number} with {frame_size} samples')
-            window_functions =['Rectangle','Triangle','Hann', 'Hamming', 'Blackman']
-            chosen_window = st.radio(label='Choose window function', options=window_functions, index=0)
-            window_func = get_window(chosen_window, frame_size)
-            windowed_frame = frame* window_func
-            times = np.arange(0,len(frame))/sr
-            st.write('Audio timecourse comparison')
+                window_functions =['Rectangle','Triangle','Hann', 'Hamming', 'Blackman']
+                chosen_window = st.radio(label='Choose window function', options=window_functions, index=0)
+                window_func = get_window(chosen_window, frame_size)
+                windowed_frame = frame* window_func
+                times = np.arange(0,len(frame))/sr
+            st.subheader(f'Window functions comparison for frame {frame_number}')
             plot_after_window(frame, times, windowed_frame, chosen_window)
-            st.write('Frequency plot')
-            # TO DO 
-            plot_fourier(windowed_frame, sr)
+            st.subheader(f'Frequency magnitude spectrum for frame {frame_number}')
+            plot_fourier(windowed_frame, sr, f'Fourier for frame with {chosen_window} window',freq_ratio=0.5)
+        else:
+            with st.container(border=True):
+                window_functions =['Rectangle','Triangle','Hann', 'Hamming', 'Blackman']
+                chosen_window = st.radio(label='Choose window function', options=window_functions, index=0)
+                window_func = get_window(chosen_window, len(y))
+                windowed_signal = y* window_func
+                times = np.arange(0,len(y))/sr
+            st.subheader('Window functions comparison for the whole clip')
+            plot_after_window(y, times, windowed_signal, chosen_window)
+            st.subheader('Frequency magnitude spectrum for the whole clip')
+            
+            plot_fourier(windowed_signal, sr, f'Fourier for the whole signal with {chosen_window} window',freq_ratio=0.5)
+        st.header('Frequency frame based metrics')
+        with st.container(border=True):
+            frame_size = st.select_slider('Choose frame size for clip analysis:',options=frame_sizes,value=1024)
+            fc_values, eb_values = clip_functions(y,sr, chosen_window, frame_size)
+
+            st.subheader('Frequency Centroids and Bandwidth')
+            plot_centroids(fc_values, eb_values)
+            
+
+
 
             
 
