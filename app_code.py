@@ -4,6 +4,7 @@ from clip_algorithms import *
 import librosa
 import pandas as pd
 import plotly.graph_objs as go
+from algorithms2 import *
 
 st.set_page_config(layout="wide")
 
@@ -35,6 +36,7 @@ with st.sidebar:
             st.subheader("Analysis Options")
             frame_check = st.checkbox('Show frame-level analysis')
             clip_check = st.checkbox('Show clip-level analysis')
+            fourier_check = st.checkbox('Show frequency analysis')
         
 with st.container():
     if uploaded_file is None:
@@ -144,6 +146,35 @@ if uploaded_file is not None:
                 st.success(f"Table saved as {file_path}")
         st.subheader('Extra audio features')
         spectral_centroid(y,sr,frame_length)
+# -------------------------------------------------------Projekt 2 --------------------------------------------------
+if uploaded_file is not None:
+    if fourier_check:
+        st.subheader('Frequency analysis')
+        with st.container(border=True):
+            with st.container(border=True):
+                frame_sizes = [128, 256, 512, 1024, 2048]
+
+                frame_size = st.select_slider('Choose frame size:',options=frame_sizes,value=1024)
+                frames = split_to_size_frames(y, frame_size)
+                frame_number = st.number_input(label='Choose frame to analyse', min_value=0, max_value=(len(frames)-1), step=1) 
+                frame = frames[frame_number]
+        
+            st.write(f'Frequency analysis for frame {frame_number} with {frame_size} samples')
+            window_functions =['Rectangle','Triangle','Hann', 'Hamming', 'Blackman']
+            chosen_window = st.radio(label='Choose window function', options=window_functions, index=0)
+            window_func = get_window(chosen_window, frame_size)
+            windowed_frame = frame* window_func
+            times = np.arange(0,len(frame))/sr
+            st.write('Audio timecourse comparison')
+            plot_after_window(frame, times, windowed_frame, chosen_window)
+            st.write('Frequency plot')
+            # TO DO 
+            plot_fourier(windowed_frame, sr)
+
+            
+
+
+
 
 
   

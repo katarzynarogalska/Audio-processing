@@ -9,22 +9,37 @@ import os
 
 
 def interactive_plot(x, y, title, x_axis, y_axis, text, key, width=1):
-    fig = go.Figure()
-    fig.add_trace(go.Scatter(x=x, y=y, mode ='lines', text= text,
-                             hoverinfo='text', line=dict(color='#0d0469', width=width)))
-    fig.update_layout(
-        title=title,
-        xaxis_title=x_axis,
-        yaxis_title= y_axis,
-        showlegend=False
-    )
-    st.plotly_chart(fig, key=key)
+    # fig = go.Figure()
+    # fig.add_trace(go.Scatter(x=x, y=y, mode ='lines', text= text,
+    #                          hoverinfo='text', line=dict(color='#0d0469', width=width)))
+    # fig.update_layout(
+    #     title=title,
+    #     xaxis_title=x_axis,
+    #     yaxis_title= y_axis,
+    #     showlegend=False
+    # )
+    # st.plotly_chart(fig, key=key)
     
-    # save button for the plot
+    # # save button for the plot
+    # if st.button(f'Save {title}', key=f'save_{key}'):
+    #     file_path = os.path.join('report', f"{title.replace(' ', '_')}.html")
+    #     fig.write_html(file_path)
+    #     st.success(f"Plot saved as {title.replace(' ', '_')}.html")
+    fig, ax = plt.subplots(figsize=(10, 6))
+    ax.plot(x, y, color='#0d0469', linewidth=width)
+    ax.set_title(title)
+    ax.set_xlabel(x_axis)
+    ax.set_ylabel(y_axis)
+    ax.grid(True)
+    st.pyplot(fig)
+
+    # przycisk zapisywania
     if st.button(f'Save {title}', key=f'save_{key}'):
-        file_path = os.path.join('report', f"{title.replace(' ', '_')}.html")
-        fig.write_html(file_path)
-        st.success(f"Plot saved as {title.replace(' ', '_')}.html")
+        if not os.path.exists('report'):
+            os.makedirs('report')
+        file_path = os.path.join('report', f"{title.replace(' ', '_')}.png")
+        fig.savefig(file_path)
+        st.success(f"Plot saved as {title.replace(' ', '_')}.png")
     
 def plot_audio(y,sr):
     times = np.arange(0,len(y))/sr
