@@ -198,6 +198,22 @@ if uploaded_file is not None:
             st.subheader('Band Energy Ratio')
             band_enery_ratios(band_en, frame_size1, sr)
 
+            st.subheader('Spectral Flatness Measure')
+            spectral_flatness(y,sr,chosen_window, frame_size1)
+
+            st.subheader('Spectral Crest Factor')
+            spectral_crest(y,sr,chosen_window, frame_size1)
+
+        st.header('Spectrogram')
+        with st.container(border=True):
+            overlap = st.number_input(label='Choose overlap ratio', min_value=float(0.1), max_value=float(0.90), step=float(0.1), value=0.5)
+            frame_size3 = st.select_slider(label='Chose frame size', options= frame_sizes, value=1024 )
+            plot_spectrogram(y,frame_size3,sr,chosen_window,overlap)
+
+
+
+           
+
             
 
 

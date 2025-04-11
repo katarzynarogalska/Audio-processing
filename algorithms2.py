@@ -71,6 +71,7 @@ def plot_fourier(frame, sr, title, freq_ratio=1):
     ax.plot(frequency[:number_of_bins], magnitude_spectrum[:number_of_bins], color='#0d0469')
     ax.set_title(title)
     ax.set_xlabel('Frequency [Hz]')
+    ax.set_ylabel('Spectrum magnitude')
     st.pyplot(fig)
 
 def clip_functions(y,sr, window, frame_size = 1024):
@@ -187,7 +188,151 @@ def band_enery_ratios(band_energies, frame_size, sr):
     ax.set_title('Band Energy Ratio per frame')
     ax.legend()
     st.pyplot(fig)
+
+def spectral_flatness(y,sr,window, frame_size):
+    frames = split_to_size_frames(y, frame_size)
+    window = get_window(window, frame_size)
+    bands = [(0, 630), (630, 1720), (1720, 4400), (4400, 11025)]
+    band_flatness = {i: [] for i in range(len(bands))}
+    for frame in frames:
+        frame = window*frame
+        ft = np.fft.fft(frame)
+        magnitude_spectrum = np.abs(ft)[:len(ft)//2] #only half because its symmetrical
+        freqs = np.fft.fftfreq(len(frame), 1/sr)[:len(ft)//2]
+        power = magnitude_spectrum**2
+
+        for i, (f0,f1) in enumerate(bands):
+            idx = np.where((freqs>=f0) & (freqs<=f1))[0]
+            band_power = power[idx]
+            multiplied = np.prod(band_power)
+            root = multiplied**(1/(f1-f0+1)) if multiplied >0 else 0 
+            denominator = np.mean(band_power)
+
+            band_flatness[i].append(root/denominator)
+
+    frame_numbers = np.arange(len(next(iter(band_flatness.values()))))  # liczba ramek
+    times = frame_numbers * frame_size / sr  # czas w sekundach dla każdej ramki
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    labels = ['0-630 Hz', '630-1720 Hz', '1720-4400 Hz', '4400-11025 Hz']
+
+    for idx in band_flatness:
+        ax.plot(times, band_flatness[idx], label=labels[idx], color=colors[idx])
+
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Spectral Flatness')
+    ax.set_title('Spectral Flatness per frame')
+    ax.legend()
+    st.pyplot(fig)
+
+def spectral_crest(y,sr,window, frame_size):
+    frames = split_to_size_frames(y, frame_size)
+    window = get_window(window, frame_size)
+    bands = [(0, 630), (630, 1720), (1720, 4400), (4400, 11025)]
+    band_crest = {i: [] for i in range(len(bands))}
+
+    for frame in frames:
+        frame = window*frame
+        ft = np.fft.fft(frame)
+        magnitude_spectrum = np.abs(ft)[:len(ft)//2] #only half because its symmetrical
+        freqs = np.fft.fftfreq(len(frame), 1/sr)[:len(ft)//2]
+        power = magnitude_spectrum**2
+
+        for i, (f0,f1) in enumerate(bands):
+            idx = np.where((freqs>=f0) & (freqs<=f1))[0]
+            band_power = power[idx]
+            nominator = np.max(band_power)
+            denominator = np.mean(band_power)
+            band_crest[i].append(nominator/denominator)
+
+    frame_numbers = np.arange(len(next(iter(band_crest.values()))))  # liczba ramek
+    times = frame_numbers * frame_size / sr  # czas w sekundach dla każdej ramki
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    labels = ['0-630 Hz', '630-1720 Hz', '1720-4400 Hz', '4400-11025 Hz']
+
+    for idx in band_crest:
+        ax.plot(times, band_crest[idx], label=labels[idx], color=colors[idx])
+
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Spectral Crest Factor')
+    ax.set_title('Spectral Crest Factor per frame')
+    ax.legend()
+    st.pyplot(fig)
+
+
+# ------------------------------------------------ additional -------------------------------------------
+def split_to_size_frames_with_overlap(audio, frame_size, overlap):
+        step = int(frame_size * (1 - overlap)) 
+        frames = []
+        for start in range(0, len(audio) - frame_size +1, step):
+            end = start + frame_size
+            frame = audio[start:end]
+            frames.append(frame)
+        print('Frames number: ', len(frames))
+        return frames
+
+
+def compute_spectrogram(y, sr, frame_size, window, overlap):
     
+    frames = split_to_size_frames_with_overlap(y, frame_size, overlap)
+    window = get_window(window, frame_size)
+    spectrogram=[]
+
+    for i,frame in enumerate(frames):
+        frame = window*frame
+        ft = np.fft.fft(frame)
+        magnitude_spectrum = np.abs(ft)[:len(ft)//2] #only half because its symmetrical
+        spectrogram.append(magnitude_spectrum)
+        
+    spectrogram = np.array(spectrogram).T
+    freqs = np.fft.fftfreq(len(frames[0]), 1/sr)[:len(ft)//2]
+    return spectrogram, freqs
+
+def plot_spectrogram(y, frame_size, sr,window, overlap):
+    step = int(frame_size * (1 - overlap))  # Krok zależny od overlap
+    num_frames = (len(y) - frame_size) // step + 1
+    times = np.arange(num_frames) * step/sr
+
+    spectrogram, freqs = compute_spectrogram(y,sr,frame_size,window, overlap)
+    ref_value = np.max(spectrogram)
+    spectrogram_db = 10 * np.log10(spectrogram / ref_value)
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    c = ax.pcolormesh(times, freqs,spectrogram_db, cmap='viridis')
+
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Frequency [Hz]')
+
+    ax.set_title('Manual Spectrogram')
+    fig.colorbar(c, ax=ax, label='Intensity [dB]')
+    st.pyplot(fig)
+
+
+
+if __name__ == "__main__":
+    y,sr = librosa.load('sample_data/female.wav', sr=None)
+    y = y/np.max(np.abs(y))
+    frames = split_to_size_frames(y, 1024)
+    frame = frames[0]
+    rect = frame * rectengular_window(1024)
+    tr = frame * traingle_window(1024)
+    hann = frame* hann_window(1024)
+    hamming = frame*hamming_window(1024)
+    blackman = frame*blackman_window(1024)
+    plt.plot(rect, label='Rectangle', color="#3698e5")
+    plt.plot(tr, label='Triangle', color="#364be5")
+    plt.plot(hann, label='Hann', color='#b836e5')
+    plt.plot(hamming, label='Hamming', color='#e56e36')
+    plt.plot(blackman, label='Blackman', color='#d54031')
+    plt.xlabel('n')
+    plt.ylabel('Amplitude')
+    plt.legend()
+    plt.show()
+    
+
+        
+        
 
 
 
