@@ -184,11 +184,20 @@ if uploaded_file is not None:
             plot_fourier(windowed_signal, sr, f'Fourier for the whole signal with {chosen_window} window',freq_ratio=0.5)
         st.header('Frequency frame based metrics')
         with st.container(border=True):
-            frame_size = st.select_slider('Choose frame size for clip analysis:',options=frame_sizes,value=1024)
-            fc_values, eb_values = clip_functions(y,sr, chosen_window, frame_size)
+            frame_sizes = [128, 256, 512, 1024, 2048]
+            frame_size1 = st.select_slider('Choose frame size for clip analysis:',options=frame_sizes,value=1024)
+            fc_values, eb_values = clip_functions(y,sr, chosen_window, frame_size1)
 
             st.subheader('Frequency Centroids and Bandwidth')
             plot_centroids(fc_values, eb_values)
+
+            st.subheader('Band Energy')
+            band_en = band_energies(y, sr, chosen_window, frame_size1)
+            plot_band_energies(band_en, frame_size1, sr)
+
+            st.subheader('Band Energy Ratio')
+            band_enery_ratios(band_en, frame_size1, sr)
+
             
 
 

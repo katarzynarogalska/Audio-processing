@@ -3,6 +3,7 @@ import matplotlib.pyplot as plt
 import streamlit as st
 from scipy.fft import fft, fftfreq
 import numpy as np
+import librosa
 
 def split_to_size_frames(audio, frame_size):
     num_frames = len(audio)//frame_size
@@ -109,8 +110,6 @@ def plot_parameters(values, title, x, y):
 
 def plot_centroids(fc_values, eb_values):
     frame_numbers = np.arange(len(fc_values))
-    print(fc_values[:10])
-    print(eb_values[:10])
     fig, ax = plt.subplots(figsize=(10, 5))
     ax.plot(frame_numbers, np.array(fc_values), label="Frequency Centroid", color='#0d0469', linewidth=2)
     ax.fill_between(frame_numbers, np.array(fc_values)-np.array(eb_values), np.array(fc_values)+np.array(eb_values), 
@@ -121,6 +120,77 @@ def plot_centroids(fc_values, eb_values):
     ax.set_title("Frequency Centroid & Bandwidth for each frame")
     ax.legend()
     st.pyplot(fig)
+
+def band_energies(y,sr,window, frame_size):
+    frames = split_to_size_frames(y, frame_size)
+    window = get_window(window, frame_size)
+    window_sum = np.sum(window)
+    bands = [(0, 630), (630, 1720), (1720, 4400), (4400, 11025)]
+    band_energies = {i: [] for i in range(len(bands))}
+    for frame in frames:
+        frame = window*frame
+        ft = np.fft.fft(frame)
+        magnitude_spectrum = np.abs(ft)[:len(ft)//2] #only half because its symmetrical
+        freqs = np.fft.fftfreq(len(frame), 1/sr)[:len(ft)//2]
+        power = magnitude_spectrum**2
+
+        for idx, (f0, f1) in enumerate(bands): #for each band
+            band_mask = (freqs >= f0) & (freqs < f1)
+            band_energy = np.sum(power[band_mask]) / window_sum
+            band_energies[idx].append(band_energy)
+    return band_energies
+
+def plot_band_energies(band_energies, frame_size, sr):
+    frame_numbers = np.arange(len(next(iter(band_energies.values()))))
+    times = frame_numbers * frame_size/sr
+    fig, ax = plt.subplots(figsize=(12, 6))
+
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    labels = ['0-630 Hz', '630-1720 Hz', '1720-4400 Hz', '4400-11025 Hz']
+
+    for idx in band_energies:
+        ax.plot(times, band_energies[idx], label=labels[idx], color=colors[idx])
+
+    ax.set_xlabel('Time')
+    ax.set_ylabel('Band Energy')
+    ax.set_title('Band Energy per frame')
+    ax.legend()
+    st.pyplot(fig)
+        
+def band_enery_ratios(band_energies, frame_size, sr):
+    num_frames = len(next(iter(band_energies.values())))  # ile jest ramek
+    num_bands = len(band_energies)
+    volumes = []
+    for i in range(num_frames):
+        total_energy = sum(band_energies[idx][i] for idx in range(num_bands))
+        volumes.append(total_energy)
+
+    band_energy_ratios = {i: [] for i in range(num_bands)}
+    for i in range(num_frames):
+        vol = volumes[i]
+        for idx in range(num_bands):
+            ratio = band_energies[idx][i] / vol if vol != 0 else 0
+            band_energy_ratios[idx].append(ratio)
+    
+    frame_numbers = np.arange(len(next(iter(band_energies.values()))))  # liczba ramek
+    times = frame_numbers * frame_size / sr  # czas w sekundach dla każdej ramki
+
+    fig, ax = plt.subplots(figsize=(12, 6))
+    colors = ['#1f77b4', '#ff7f0e', '#2ca02c', '#d62728']
+    labels = ['0-630 Hz', '630-1720 Hz', '1720-4400 Hz', '4400-11025 Hz']
+
+    for idx in band_energy_ratios:
+        ax.plot(times, band_energy_ratios[idx], label=labels[idx], color=colors[idx])
+
+    ax.set_xlabel('Time [s]')
+    ax.set_ylabel('Band Energy Ratio')
+    ax.set_title('Band Energy Ratio per frame')
+    ax.legend()
+    st.pyplot(fig)
+    
+
+
+
 
 
 
