@@ -4,6 +4,9 @@ import streamlit as st
 from scipy.fft import fft, fftfreq
 import numpy as np
 import librosa
+import plotly.graph_objs as go
+import io
+import wave
 
 def split_to_size_frames(audio, frame_size):
     num_frames = len(audio)//frame_size
@@ -67,12 +70,25 @@ def plot_fourier(frame, sr, title, freq_ratio=1):
     #frequency = np.linspace(0, sr, len(magnitude_spectrum)) #frequency between 0 and sample rate + create bins 
     frequency = np.fft.fftfreq(len(frame), d=1/sr)
     number_of_bins = int(len(frequency) * freq_ratio)
-    fig, ax = plt.subplots(figsize=(10, 6))
-    ax.plot(frequency[:number_of_bins], magnitude_spectrum[:number_of_bins], color='#0d0469')
-    ax.set_title(title)
-    ax.set_xlabel('Frequency [Hz]')
-    ax.set_ylabel('Spectrum magnitude')
-    st.pyplot(fig)
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=frequency[:number_of_bins],
+        y=magnitude_spectrum[:number_of_bins],
+        mode='lines',
+        line=dict(color='#0d0469'),
+        hovertemplate='Częstotliwość: %{x:.1f} Hz<br>Amplituda: %{y:.2f}<extra></extra>'
+    ))
+    
+    fig.update_layout(
+        title=title,
+        xaxis_title='Frequency [Hz]',
+        yaxis_title='Spectrum magnitude',
+        hovermode='x unified',
+        width=800,
+        height=500
+    )
+    
+    st.plotly_chart(fig, use_container_width=True)
 
 def clip_functions(y,sr, window, frame_size = 1024):
     frames = split_to_size_frames(y, frame_size)

@@ -156,11 +156,12 @@ if uploaded_file is not None:
         if granularity == 'Single Frame':
             
             with st.container(border=True):
-                frame_sizes = [128, 256, 512, 1024, 2048]
-                frame_size = st.select_slider('Choose frame size:',options=frame_sizes,value=1024)
-                frames = split_to_size_frames(y, frame_size)
+                frame_lengths = [0.05,0.1,0.2,0.3,0.4]
+                frame_len = st.select_slider('Choose frame length:',options=frame_lengths,value=0.1)
+                frames = split_into_frames(y,sr,frame_len)
                 frame_number = st.number_input(label='Choose frame to analyse', min_value=0, max_value=(len(frames)-1), step=1) 
                 frame = frames[frame_number]
+                frame_size = int(frame_len*sr)
                 window_functions =['Rectangle','Triangle','Hann', 'Hamming', 'Blackman']
                 chosen_window = st.radio(label='Choose window function', options=window_functions, index=0)
                 window_func = get_window(chosen_window, frame_size)
