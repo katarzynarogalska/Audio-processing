@@ -190,7 +190,7 @@ if uploaded_file is not None:
             fc_values, eb_values = clip_functions(y,sr, chosen_window, frame_size1)
 
             st.subheader('Frequency Centroids and Bandwidth')
-            plot_centroids(fc_values, eb_values)
+            plot_centroids(fc_values, eb_values, frame_size1, sr)
 
             st.subheader('Band Energy')
             band_en = band_energies(y, sr, chosen_window, frame_size1)

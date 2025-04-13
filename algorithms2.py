@@ -125,14 +125,15 @@ def plot_parameters(values, title, x, y):
     ax.set_xlabel(x)
     st.pyplot(fig)
 
-def plot_centroids(fc_values, eb_values):
+def plot_centroids(fc_values, eb_values, frame_size, sr):
     frame_numbers = np.arange(len(fc_values))
+    times = frame_numbers * frame_size / sr
     fig, ax = plt.subplots(figsize=(10, 5))
-    ax.plot(frame_numbers, np.array(fc_values), label="Frequency Centroid", color='#0d0469', linewidth=2)
-    ax.fill_between(frame_numbers, np.array(fc_values)-np.array(eb_values), np.array(fc_values)+np.array(eb_values), 
+    ax.plot(times, np.array(fc_values), label="Frequency Centroid", color='#0d0469', linewidth=2)
+    ax.fill_between(times, np.array(fc_values)-np.array(eb_values), np.array(fc_values)+np.array(eb_values), 
                     color='#a0c1db', alpha=0.3, label="Effective Bandwidth")
 
-    ax.set_xlabel("Frame Number")
+    ax.set_xlabel("Time [s]")
     ax.set_ylabel("Frequency (Hz)")
     ax.set_title("Frequency Centroid & Bandwidth for each frame")
     ax.legend()
