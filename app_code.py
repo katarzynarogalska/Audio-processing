@@ -5,8 +5,10 @@ import librosa
 import pandas as pd
 import plotly.graph_objs as go
 from algorithms2 import *
-
 st.set_page_config(layout="wide")
+
+
+# Here is code for the app interface using algorithms for both project 1 and 2
 
 
 st.title('Audio analysis app')

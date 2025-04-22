@@ -7,7 +7,9 @@ import matplotlib.pyplot as plt
 import math
 import plotly.graph_objects as go
 from scipy.signal import find_peaks
-
+'''
+Here is part 2 of algorithms used in project 1 - time course audio analysis
+'''
 # Volume based ----------------------------------------------------------------------------------------
 def vstd(y,sr,frame_length=1):
     volumes = loudness(y,sr,frame_length,plot=False)

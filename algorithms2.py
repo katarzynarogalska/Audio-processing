@@ -7,6 +7,9 @@ import librosa
 import plotly.graph_objs as go
 import io
 import wave
+'''
+Here are algorithms used in project 2 - frequency analysi with fourier transformation
+'''
 
 def split_to_size_frames(audio, frame_size):
     num_frames = len(audio)//frame_size
@@ -18,7 +21,7 @@ def split_to_size_frames(audio, frame_size):
         frames.append(frame)
     return frames
 
-
+# Window functions
 def rectengular_window(frame_lenght):
     return [1 for i in range(frame_lenght)]
 
@@ -46,6 +49,7 @@ def get_window(chosen_window, frame_len):
     elif chosen_window=='Blackman':
         return blackman_window(frame_len)
     
+#Plotting comparison before and after window function
 def plot_after_window(frame, times, windowed_frame, chosen_window):
     fig, axs = plt.subplots(2, 1, figsize=(10, 6))
     plt.subplots_adjust(hspace=0.4)
@@ -55,7 +59,6 @@ def plot_after_window(frame, times, windowed_frame, chosen_window):
     axs[0].set_ylabel('Amplitude')
     axs[0].legend()
 
-    # Po zastosowaniu okna
     axs[1].plot(times, windowed_frame)
     axs[1].set_title(f'Frame timecourse after {chosen_window} window')
     axs[1].set_xlabel('Time[s]')
@@ -64,6 +67,8 @@ def plot_after_window(frame, times, windowed_frame, chosen_window):
 
     st.pyplot(fig)
 
+
+# plotting Fourier transformation
 def plot_fourier(frame, sr, title, freq_ratio=1):
     ft = np.fft.fft(frame)
     magnitude_spectrum = np.abs(ft)
@@ -90,6 +95,8 @@ def plot_fourier(frame, sr, title, freq_ratio=1):
     
     st.plotly_chart(fig, use_container_width=True)
 
+
+# Frequency based metrics - Spectral Centroid, Badwidth, Energy, Flatness
 def clip_functions(y,sr, window, frame_size = 1024):
     frames = split_to_size_frames(y, frame_size)
     fc_values =[]
@@ -112,6 +119,7 @@ def frame_frequency_centroid(magnitude_spectrum, frequencies):
             fc = 0 
     fc = np.sum(frequencies * magnitude_spectrum) / np.sum(magnitude_spectrum)
     return fc 
+
 def frame_effective_bandwidth(magnitude_spectrum, frequencies, frequency_centroid):
     eb = np.sqrt(np.sum((frequencies - frequency_centroid)**2* magnitude_spectrum**2)/np.sum(magnitude_spectrum**2))
     return eb
@@ -278,7 +286,7 @@ def spectral_crest(y,sr,window, frame_size):
     st.pyplot(fig)
 
 
-# ------------------------------------------------ additional -------------------------------------------
+# ------------------------------------------------ additional features = Spectrogram  -------------------------------------------
 def split_to_size_frames_with_overlap(audio, frame_size, overlap):
         step = int(frame_size * (1 - overlap)) 
         frames = []

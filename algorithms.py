@@ -6,7 +6,9 @@ import matplotlib.pyplot as plt
 import plotly.graph_objects as go
 from scipy.signal import find_peaks
 import os
-
+'''
+Here are algorithms used in project 1 - time course audio analysis
+'''
 
 def interactive_plot(x, y, title, x_axis, y_axis, text, key, width=1):
     # fig = go.Figure()
